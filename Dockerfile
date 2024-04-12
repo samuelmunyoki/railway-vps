@@ -8,30 +8,6 @@ RUN apt-get -qqy update \
         sudo \
         supervisor \
         xvfb x11vnc novnc websockify \
-        dbus-x11 \
-        xfce4 \
-        firefox \
-        terminator \
-        htop \
-        gnupg2 \
-        software-properties-common \
-        curl \
-        git \
-        wget \
-        unzip \
-        xfonts-intl-chinese \
-        fonts-wqy-microhei \  
-        ibus-pinyin \
-        ibus \
-        ibus-clutter \
-        ibus-gtk \
-        ibus-gtk3 \
-        python3-pip \
-        python3-setuptools \
-        g++ \
-        ssh \
-        locales \
-        socat \
     && apt-get autoclean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
@@ -39,10 +15,12 @@ RUN apt-get -qqy update \
 RUN cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
 COPY scripts/* /opt/bin/
+
+# Add Supervisor configuration file
 COPY supervisord.conf /etc/supervisor/
 
 # Relaxing permissions for other non-sudo environments
-RUN mkdir -p /var/run/supervisor /var/log/supervisor \
+RUN  mkdir -p /var/run/supervisor /var/log/supervisor \
     && chmod -R 777 /opt/bin/ /var/run/supervisor /var/log/supervisor /etc/passwd \
     && chgrp -R 0 /opt/bin/ /var/run/supervisor /var/log/supervisor \
     && chmod -R g=u /opt/bin/ /var/run/supervisor /var/log/supervisor
@@ -56,28 +34,26 @@ CMD ["/opt/bin/entry_point.sh"]
 # Utilities
 #============================
 FROM ubuntu-base as ubuntu-utilities
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ffmpeg \
-        remmina remmina-plugin-rdp remmina-plugin-secret \
-        obs-studio \
+RUN apt-get update
+RUN apt-get install ffmpeg -y
+RUN apt-get -qqy update \
+    && apt-get -qqy --no-install-recommends install \
+        firefox htop terminator gnupg2 software-properties-common \
     && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
     && apt install -qqy --no-install-recommends ./google-chrome-stable_current_amd64.deb \
+    && apt-add-repository ppa:remmina-ppa-team/remmina-next \
+    && apt update \
+    && apt install -qqy --no-install-recommends remmina remmina-plugin-rdp remmina-plugin-secret \
+    && apt-add-repository ppa:obsproject/obs-studio \
+    && apt update \
+    && apt install -qqy --no-install-recommends obs-studio \
+    && apt install unzip \
     && apt-get autoclean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
-RUN dpkg-reconfigure locales
-RUN wget --no-check-certificate -c https://golang.org/dl/go1.16.3.linux-amd64.tar.gz \
-    && tar -C /usr/local -xvzf go1.*.tar.gz \
-    && export PATH=$PATH:/usr/local/go/bin
+# COPY conf.d/* /etc/supervisor/conf.d/
 
-RUN git clone https://github.com/vlakhani28/bbht.git \
-    && chmod +x bbht/install.sh \
-    && ./bbht/install.sh \
-    && mv bbht/run-after-go.sh /root/tools \
-    && chmod +x /root/tools/run-after-go.sh
 
 #============================
 # GUI
@@ -101,4 +77,4 @@ RUN apt-get update -qqy \
         dbus-x11 xfce4 \
     && apt-get autoclean \
     && apt-get autoremove \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* 
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
